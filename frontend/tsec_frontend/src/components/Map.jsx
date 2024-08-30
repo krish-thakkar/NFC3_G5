@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import axios from 'axios'; // Make sure to install axios: npm install axios
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
 
@@ -91,9 +92,22 @@ const Map = () => {
       
       setRasterValues(responses);
       console.log('Raster values:', responses);
+
+      // Store data in MongoDB
+      await storeDataInMongoDB(responses);
     } catch (error) {
-      console.error('Error fetching raster values:', error);
+      console.error('Error fetching or storing raster values:', error);
       setError(error.message);
+    }
+  };
+
+  const storeDataInMongoDB = async (data) => {
+    try {
+      const response = await axios.post('http://localhost:5000/json', data);
+      console.log('Data stored in MongoDB:', response.data);
+    } catch (error) {
+      console.error('Error storing data in MongoDB:', error);
+      setError('Failed to store data in MongoDB');
     }
   };
 

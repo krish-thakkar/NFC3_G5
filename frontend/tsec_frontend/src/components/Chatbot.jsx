@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaRegWindowClose, FaSpinner, FaPaperPlane, FaTimes, FaChevronUp } from 'react-icons/fa';
+import axios from 'axios';
 
 const languages = {
   en: {
@@ -35,6 +36,7 @@ const Chatbot = ({ isOpen, onClose, theme, userAvatar }) => {
   const [loading, setLoading] = useState(false);
   const [generativeAI, setGenerativeAI] = useState(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [latestData, setLatestData] = useState(null);
   const messagesEndRef = useRef(null);
 
   const t = languages[language] || languages.en;
@@ -43,11 +45,21 @@ const Chatbot = ({ isOpen, onClose, theme, userAvatar }) => {
     const genAI = new GoogleGenerativeAI("AIzaSyDunfDQjPX1kXB9Swdrt9jPcDEkm-6haKc");
     setGenerativeAI(genAI);
     setMessages([{ role: 'assistant', content: t.welcomeMessage }]);
+    fetchLatestData();
   }, [t.welcomeMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const fetchLatestData = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/latest-data');
+      setLatestData(response.data);
+    } catch (error) {
+      console.error('Error fetching latest data:', error);
+    }
+  };
 
   const getResponse = async (prompt) => {
     if (!generativeAI) return 'AI model not initialized. Please try again.';
@@ -72,6 +84,8 @@ const Chatbot = ({ isOpen, onClose, theme, userAvatar }) => {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
     const context = messages.slice(-10).map(msg => `${msg.role}: ${msg.content}`).join('\n');
+    const dataContext = latestData ? JSON.stringify(latestData) : 'No data available';
+    
     const prompt = `
       You are Kisan Mitra, an AI assistant specialized in helping farmers. Provide helpful and concise answers to farming-related questions. If a question is not related to farming, politely steer the conversation back to agricultural topics. Respond in ${languages[language].name}.
 
@@ -80,47 +94,10 @@ const Chatbot = ({ isOpen, onClose, theme, userAvatar }) => {
 
       User: ${userMessage}
 
-      Assistant: Provide a helpful response based on the context and the user's question. If there's not enough context, ask for clarification.
-      and also this are my data based on this if asked provide the output 
-      ${
-         `
-        As an agricultural expert, analyze the following crop and environmental data:
-        
-        - Nearest city: ${data.nearest_city}
-        - Location: ${data.lat_long}
-        - Date: ${data.date}
-        - Season: ${data.season}
-        - Soil type: ${data.soil_type}
-        - Mean soil organic content: ${data.mean_soil_cd.org}
-        - Mean soil inorganic content: ${data.mean_soil_cd.inorg}
-        - Soil depth: ${data.depth} cm
-        - Soil texture: ${data.texture}
-        - NSA: ${data.nsa}%
-        - WBF: ${data.wbf}%
-        - NDVI: ${data.ndvi}
-        - FNDVI: ${data.fndvi}
-        - Vegetation fraction: ${data.vf}%
-        - Land degradation:
-          * Salt affected: ${data.land_degradation.salt_affected}%
-          * Water erosion: ${data.land_degradation.water_erosion}%
-          * Water logging: ${data.land_degradation.water_logging}%
-          * Wind erosion: ${data.land_degradation.wind_erosion}%
-        - Forest cover: ${data.forest_cover}%
-        - Fire risk: ${data.fire_risk * 100}%
+      Latest agricultural data:
+      ${dataContext}
 
-        Based on this data, provide:
-        1. A brief analysis of the current conditions
-        2. Three key insights about the land and its potential for agriculture
-        3. Two specific crop recommendations suitable for these conditions
-        4. Three actionable tips for improving soil health and crop yield
-        5. An estimate of potential crop yield (high/medium/low) with a brief explanation
-
-        Format the response in markdown, using headers for each section.
-        Provide me in point wise and remove the ## from it 
-      `
-
-      }
-      
+      Assistant: Provide a helpful response based on the context, the user's question, and the latest agricultural data. If there's not enough context or data, ask for clarification.
     `;
 
     const response = await getResponse(prompt);

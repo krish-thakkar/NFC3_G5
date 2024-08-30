@@ -5,6 +5,7 @@ import Chatbot from './Chatbot';
 import Navbar from "./Navbar"
 import SoilClassifier from './SoilClassifier';
 import DiseasePredictor from './DiseasePredictor';
+
 // CropDashboard Component
 const CropDashboard = () => {
   const [data, setData] = useState(null);
@@ -13,39 +14,44 @@ const CropDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Simulating an API call with setTimeout
-      setTimeout(() => {
-        const simulatedData = {
-          "nearest_city": "Farmville",
-          "lat_long": "40.7128,-74.0060",
-          "date": "2023-08-30",
-          "season": "Summer",
-          "soil_type": "Loamy",
-          "mean_soil_cd": {
-            "org": 8.46455,
-            "inorg": 7.585656
-          },
-          "depth": 100,
-          "texture": "Fine",
-          "nsa": 79.07346654737051,
-          "wbf": 0,
-          "ndvi": -0.403921568627451,
-          "fndvi": -0.5450980392156863,
-          "vf": 25.49019607843137,
-          "land_degradation": {
-            "salt_affected": 0,
-            "water_erosion": 1.6099999999999999,
-            "water_logging": 0,
-            "wind_erosion": 0
-          },
-          "forest_cover": 4.8462,
-          "fire_risk": 0.02,
-          "surface_runoff": 0.1,          "soil_moisture": 1.2,
-          "evapotranspiration": 3
-        };
-        setData(simulatedData);
-        fetchWeatherData(simulatedData.lat_long);
-      }, 1000); // Simulate a 1 second delay
+      try {
+        const response = await fetch('http://localhost:5000/data');
+        const fetchedData = await response.json();
+        if (fetchedData.length > 0) {
+          const latestData = fetchedData[fetchedData.length - 1]; // Get the latest data point
+          
+          // Add random data for missing fields
+          const updatedData = {
+            ...latestData,
+            nearest_city: latestData.nearest_city || "Farmville",
+            lat_long: `${latestData.lat || 40.7128},${latestData.long || -74.0060}`,
+            date: latestData.date || "2023-08-30",
+            season: latestData.season || "Summer",
+            soil_type: latestData.soil_type || "Loamy",
+            mean_soil_cd: latestData.mean_soil_cd || {
+              org: Math.random() * 10,
+              inorg: Math.random() * 10
+            },
+            depth: latestData.depth || Math.floor(Math.random() * 200),
+            texture: latestData.texture || "Fine",
+            wbf: latestData.wbf || Math.random(),
+            vf: latestData.vf || Math.random() * 100,
+            land_degradation: latestData.land_degradation || {
+              salt_affected: Math.random() * 5,
+              water_erosion: Math.random() * 5,
+              water_logging: Math.random() * 5,
+              wind_erosion: Math.random() * 5
+            },
+            forest_cover: latestData.forest_cover || Math.random() * 100,
+            soil_moisture: latestData.soil_moisture || Math.random() * 5
+          };
+          
+          setData(updatedData);
+          fetchWeatherData(`${updatedData.lat_long}`);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     };
 
     fetchData();
@@ -69,182 +75,182 @@ const CropDashboard = () => {
 
   return (
     <>
-    <Navbar/>
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 text-black p-8 relative overflow-hidden">
-      <div className="relative z-10">
-        <header className="flex justify-between items-center mb-8">
-          <div className="flex items-center">
-            <LeafIcon className="w-8 h-8 mr-4 text-green-600" />
-            <h1 className="text-3xl font-bold text-green-800">Crop Dashboard</h1>
-          </div>
-          <div className="flex items-center">
-            <input type="text" placeholder="Search..." className="px-4 py-2 rounded-lg bg-emerald-100 text-black border border-green-300 focus:outline-none focus:border-green-500 transition-colors duration-300" />
-            <button
-              onClick={() => setIsChatbotOpen(true)}
-              className="ml-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
-            >
-              Open Chatbot
-            </button>
-          </div>
-        </header>
-        
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <InfoCard 
-            icon={<MapPinIcon className="w-6 h-6" />} 
-            title="Location" 
-            value={`${data.nearest_city} (${data.lat_long})`} 
-            info="The nearest city to the crop area and its geographical coordinates."
-          />
-          <InfoCard 
-            icon={<CalendarIcon className="w-6 h-6" />} 
-            title="Date & Season" 
-            value={`${data.date} - ${data.season}`} 
-            info="The current date and season, which are crucial for crop planning and management."
-          />
-          <InfoCard 
-            icon={<DropletIcon className="w-6 h-6" />} 
-            title="Soil Type" 
-            value={data.soil_type} 
-            info="The type of soil in the crop area, which affects water retention, nutrient availability, and crop suitability."
-          />
-        </div>
-
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <Card className="col-span-2" info="Soil composition affects nutrient availability and water retention capacity.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Soil Composition</h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={[
-                { name: 'Organic', value: data.mean_soil_cd.org },
-                { name: 'Inorganic', value: data.mean_soil_cd.inorg },
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
-                <XAxis dataKey="name" stroke="#333" />
-                <YAxis stroke="#333" />
-                <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #E0E0E0' }} />
-                <Bar dataKey="value" fill="#4CAF50" />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-green-600">Depth</p>
-                <p className="text-xl font-bold text-green-800">{data.depth} cm</p>
-              </div>
-              <div>
-                <p className="text-sm text-green-600">Texture</p>
-                <p className="text-xl font-bold text-green-800">{data.texture}</p>
-              </div>
+      <Navbar/>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 text-black p-8 relative overflow-hidden">
+        <div className="relative z-10">
+          <header className="flex justify-between items-center mb-8">
+            <div className="flex items-center">
+              <LeafIcon className="w-8 h-8 mr-4 text-green-600" />
+              <h1 className="text-3xl font-bold text-green-800">Crop Dashboard</h1>
             </div>
-          </Card>
+            <div className="flex items-center">
+              <input type="text" placeholder="Search..." className="px-4 py-2 rounded-lg bg-emerald-100 text-black border border-green-300 focus:outline-none focus:border-green-500 transition-colors duration-300" />
+              <button
+                onClick={() => setIsChatbotOpen(true)}
+                className="ml-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200"
+              >
+                Open Chatbot
+              </button>
+            </div>
+          </header>
+          
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            <InfoCard 
+              icon={<MapPinIcon className="w-6 h-6" />} 
+              title="Location" 
+              value={`${data.nearest_city} (${data.lat_long})`} 
+              info="The nearest city to the crop area and its geographical coordinates."
+            />
+            <InfoCard 
+              icon={<CalendarIcon className="w-6 h-6" />} 
+              title="Date & Season" 
+              value={`${data.date} - ${data.season}`} 
+              info="The current date and season, which are crucial for crop planning and management."
+            />
+            <InfoCard 
+              icon={<DropletIcon className="w-6 h-6" />} 
+              title="Soil Type" 
+              value={data.soil_type} 
+              info="The type of soil in the crop area, which affects water retention, nutrient availability, and crop suitability."
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            <Card className="col-span-2" info="Soil composition affects nutrient availability and water retention capacity.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Soil Composition</h2>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={[
+                  { name: 'Organic', value: data.mean_soil_cd.org },
+                  { name: 'Inorganic', value: data.mean_soil_cd.inorg },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E0E0E0" />
+                  <XAxis dataKey="name" stroke="#333" />
+                  <YAxis stroke="#333" />
+                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #E0E0E0' }} />
+                  <Bar dataKey="value" fill="#4CAF50" />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-green-600">Depth</p>
+                  <p className="text-xl font-bold text-green-800">{data.depth} cm</p>
+                </div>
+                <div>
+                  <p className="text-sm text-green-600">Texture</p>
+                  <p className="text-xl font-bold text-green-800">{data.texture}</p>
+                </div>
+              </div>
+            </Card>
        
-          <Card info="Land characteristics provide insights into vegetation health and coverage.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Land Characteristics</h2>
-            <div className="space-y-2">
-              <InfoItem label="NSA" value={`${data.nsa.toFixed(2)}%`} info="Net Sown Area: The total area sown with crops." />
-              <InfoItem label="WBF" value={`${data.wbf.toFixed(2)}%`} info="Water Body Fraction: The percentage of land covered by water bodies." />
-              <InfoItem label="NDVI" value={data.ndvi.toFixed(4)} info="Normalized Difference Vegetation Index: An indicator of plant health and density." />
-              <InfoItem label="FNDVI" value={data.fndvi.toFixed(4)} info="Fractional NDVI: A more detailed measure of vegetation cover." />
-              <InfoItem label="Vegetation Fraction" value={`${data.vf.toFixed(2)}%`} info="The percentage of land covered by vegetation." />
-            </div>
-          </Card>
+            <Card info="Land characteristics provide insights into vegetation health and coverage.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Land Characteristics</h2>
+              <div className="space-y-2">
+                <InfoItem label="NSA" value={`${data.nsa.toFixed(2)}%`} info="Net Sown Area: The total area sown with crops." />
+                <InfoItem label="WBF" value={`${data.wbf.toFixed(2)}%`} info="Water Body Fraction: The percentage of land covered by water bodies." />
+                <InfoItem label="NDVI" value={data.ndvi.toFixed(4)} info="Normalized Difference Vegetation Index: An indicator of plant health and density." />
+                <InfoItem label="FNDVI" value={data.fndvi.toFixed(4)} info="Fractional NDVI: A more detailed measure of vegetation cover." />
+                <InfoItem label="Vegetation Fraction" value={`${data.vf.toFixed(2)}%`} info="The percentage of land covered by vegetation." />
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            <Card info="Land degradation factors affect soil quality and crop productivity.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Land Degradation</h2>
+              <div className="space-y-2">
+                <InfoItem label="Salt Affected" value={`${data.land_degradation.salt_affected.toFixed(2)}%`} info="Percentage of land affected by salt accumulation." />
+                <InfoItem label="Water Erosion" value={`${data.land_degradation.water_erosion.toFixed(2)}%`} info="Percentage of land affected by water erosion." />
+                <InfoItem label="Water Logging" value={`${data.land_degradation.water_logging.toFixed(2)}%`} info="Percentage of land affected by water logging." />
+                <InfoItem label="Wind Erosion" value={`${data.land_degradation.wind_erosion.toFixed(2)}%`} info="Percentage of land affected by wind erosion." />
+              </div>
+            </Card>
+            <Card info="Forest cover and fire risk are important factors in land management.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Forest Information</h2>
+              <div className="flex items-center justify-between mb-4">
+                <TreeIcon className="w-12 h-12 text-green-600" />
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-green-800">{data.forest_cover.toFixed(2)}%</p>
+                  <p className="text-sm text-green-600">Forest Cover</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <FireIcon className="w-12 h-12 text-red-600" />
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-red-600">{(data.fire_risk * 100).toFixed(2)}%</p>
+                  <p className="text-sm text-red-600">Fire Risk</p>
+                </div>
+              </div>
+            </Card>
+            <Card info="Weather forecast helps in planning agricultural activities.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Weather Forecast</h2>
+              {weatherData ? (
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  {weatherData.map((day, index) => (
+                    <div key={index} className="text-center">
+                      <p className="font-semibold">{new Date(day.dt * 1000).toLocaleDateString()}</p>
+                      <WeatherIcon icon={day.weather[0].icon} />
+                      <p>{day.main.temp.toFixed(1)}°C</p>
+                      <p className="text-xs">{day.weather[0].description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>Loading weather data...</p>
+              )}
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-3 gap-6 mb-8">
+            <Card info="Surface runoff is the flow of water that occurs on the ground surface when excess rainwater can no longer be absorbed by the soil.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Surface Runoff</h2>
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-blue-600">{data.surface_runoff.toFixed(2)} mm/day</p>
+                  <p className="text-sm text-blue-600">Average Surface Runoff</p>
+                </div>
+              </div>
+            </Card>
+            <Card info="Soil moisture is the water content held in the soil, crucial for plant growth and agricultural productivity.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Soil Moisture</h2>
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-brown-600">{data.soil_moisture.toFixed(2)} m³/m³</p>
+                  <p className="text-sm text-brown-600">Average Soil Moisture</p>
+                </div>
+              </div>
+            </Card>
+            <Card info="Evapotranspiration is the process by which water is transferred from the land to the atmosphere by evaporation from the soil and transpiration from plants.">
+              <h2 className="text-xl font-semibold mb-4 text-green-800">Evapotranspiration</h2>
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-3xl font-bold text-green-600">{data.evapotranspiration.toFixed(2)} mm/day</p>
+                  <p className="text-sm text-green-600">Average Evapotranspiration</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            <SoilClassifier/>
+            <DiseasePredictor/>
+          </div>
+
+          <div className="mb-8">
+            <Insights data={data} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <Card info="Land degradation factors affect soil quality and crop productivity.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Land Degradation</h2>
-            <div className="space-y-2">
-              <InfoItem label="Salt Affected" value={`${data.land_degradation.salt_affected.toFixed(2)}%`} info="Percentage of land affected by salt accumulation." />
-              <InfoItem label="Water Erosion" value={`${data.land_degradation.water_erosion.toFixed(2)}%`} info="Percentage of land affected by water erosion." />
-              <InfoItem label="Water Logging" value={`${data.land_degradation.water_logging.toFixed(2)}%`} info="Percentage of land affected by water logging." />
-              <InfoItem label="Wind Erosion" value={`${data.land_degradation.wind_erosion.toFixed(2)}%`} info="Percentage of land affected by wind erosion." />
-            </div>
-          </Card>
-          <Card info="Forest cover and fire risk are important factors in land management.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Forest Information</h2>
-            <div className="flex items-center justify-between mb-4">
-              <TreeIcon className="w-12 h-12 text-green-600" />
-              <div className="text-right">
-                <p className="text-3xl font-bold text-green-800">{data.forest_cover.toFixed(2)}%</p>
-                <p className="text-sm text-green-600">Forest Cover</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <FireIcon className="w-12 h-12 text-red-600" />
-              <div className="text-right">
-                <p className="text-3xl font-bold text-red-600">{(data.fire_risk * 100).toFixed(2)}%</p>
-                <p className="text-sm text-red-600">Fire Risk</p>
-              </div>
-            </div>
-          </Card>
-          <Card info="Weather forecast helps in planning agricultural activities.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Weather Forecast</h2>
-            {weatherData ? (
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                {weatherData.map((day, index) => (
-                  <div key={index} className="text-center">
-                    <p className="font-semibold">{new Date(day.dt * 1000).toLocaleDateString()}</p>
-                    <WeatherIcon icon={day.weather[0].icon} />
-                    <p>{day.main.temp.toFixed(1)}°C</p>
-                    <p className="text-xs">{day.weather[0].description}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>Loading weather data...</p>
-            )}
-          </Card>
-        </div>
-        <div className="grid grid-cols-2 gap-6 mb-8">
-        <SoilClassifier/>
-        <DiseasePredictor/>
-        </div>
-
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <Card info="Surface runoff is the flow of water that occurs on the ground surface when excess rainwater can no longer be absorbed by the soil.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Surface Runoff</h2>
-            <div className="flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-blue-600">{data.surface_runoff.toFixed(2)} mm/day</p>
-                <p className="text-sm text-blue-600">Average Surface Runoff</p>
-              </div>
-            </div>
-          </Card>
-          <Card info="Soil moisture is the water content held in the soil, crucial for plant growth and agricultural productivity.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Soil Moisture</h2>
-            <div className="flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-brown-600">{data.soil_moisture.toFixed(2)} m³/m³</p>
-                <p className="text-sm text-brown-600">Average Soil Moisture</p>
-              </div>
-            </div>
-          </Card>
-          <Card info="Evapotranspiration is the process by which water is transferred from the land to the atmosphere by evaporation from the soil and transpiration from plants.">
-            <h2 className="text-xl font-semibold mb-4 text-green-800">Evapotranspiration</h2>
-            <div className="flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-green-600">{data.evapotranspiration.toFixed(2)} mm/day</p>
-                <p className="text-sm text-green-600">Average Evapotranspiration</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="mb-8">
-          <Insights data={data} />
-        </div>
+        <Chatbot
+          isOpen={isChatbotOpen}
+          onClose={() => setIsChatbotOpen(false)}
+          theme={{ primary: 'green' }}
+          userAvatar="/path-to-user-avatar.png"
+          dashboardData={data}
+        />
       </div>
-
-      <Chatbot
-        isOpen={isChatbotOpen}
-        onClose={() => setIsChatbotOpen(false)}
-        theme={{ primary: 'green' }}
-        userAvatar="/path-to-user-avatar.png"
-        dashboardData={data}
-      />
-    </div>
-  </>
+    </>
   );
 };
-
 // Card, InfoCard, InfoItem, InfoIcon, and WeatherIcon components remain the same
 
 // InfoCard Component
