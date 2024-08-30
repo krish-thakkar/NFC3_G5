@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Insights from './Insights';
 import Chatbot from './Chatbot';
 import Navbar from "./Navbar"
+import SoilClassifier from './SoilClassifier';
+import DiseasePredictor from './DiseasePredictor';
 // CropDashboard Component
 const CropDashboard = () => {
   const [data, setData] = useState(null);
@@ -190,6 +192,10 @@ const CropDashboard = () => {
               <p>Loading weather data...</p>
             )}
           </Card>
+        </div>
+        <div className="grid grid-cols-2 gap-6 mb-8">
+        <SoilClassifier/>
+        <DiseasePredictor/>
         </div>
 
         <div className="grid grid-cols-3 gap-6 mb-8">
