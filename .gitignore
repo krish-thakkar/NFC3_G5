@@ -1,2 +1,5 @@
 node_modules
 .env
+model
+soilcrop.h5
+bimar_model.h5
