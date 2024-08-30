@@ -1,4 +1,4 @@
 node_modules
 .env
 model
-*.h5
+.h5
