@@ -10,7 +10,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // MongoDB connection URI (replace with your actual MongoDB URI)
-const mongoURI = "mongodb+srv://Krish:Krish%40123@cluster0.btmwa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const mongoURI = "MONGO_URI";
 
 // Connect to MongoDB
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
